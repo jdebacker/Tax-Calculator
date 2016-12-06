@@ -188,7 +188,7 @@ def Adj(e03150, e03210, c03260,
 
 @iterate_jit(nopython=True)
 def CapGains(p23250, p22250, _sep, ALD_StudentLoan_hc,
-             ALD_Investment_ec_rt, ALD_Investment_ec_base_all,
+             ALD_Investment_ec_rt,
              e00200, e00300, e00600, e00650, e00700, e00800,
              CG_nodiff, CG_ec, CG_reinvest_ec_rt,
              e00900, e01100, e01200, e01400, e01700, e02000, e02100,
@@ -199,26 +199,17 @@ def CapGains(p23250, p22250, _sep, ALD_StudentLoan_hc,
     """
     # net capital gain (long term + short term) before exclusion
     c23650 = p23250 + p22250
+    c23650b = p23250 + p22250 * (1 - ALD_Investment_ec_rt)
     # limitation on capital losses
     c01000 = max((-3000. / _sep), c23650)
+    c01000b = max((-3000. / _sep), c23650b)
     # compute exclusion of investment income from AGI
-    invinc = e00300 + e00600 + c01000 + e01100 + e01200
-    if ALD_Investment_ec_base_all:
-        invinc_ec_base = invinc
-    else:
-        invinc_ec_base = e00300 + e00650 + p23250
-    invinc_agi_ec = ALD_Investment_ec_rt * max(0., invinc_ec_base)
+    invinc = e00300 + e00650
+    invinc_agi_ec = ALD_Investment_ec_rt * invinc + c01000 - c01000b
     # compute ymod1 variable that is included in AGI
     ymod1 = (e00200 + e00700 + e00800 + e00900 + e01400 + e01700 +
-             invinc - invinc_agi_ec +
-             e02000 + e02100 + e02300)
-    if CG_nodiff:
-        # apply QDIV+CG exclusion if QDIV+LTCG receive no special tax treatment
-        qdcg_pos = max(0., e00650 + c01000)
-        qdcg_exclusion = (max(CG_ec, qdcg_pos) +
-                          CG_reinvest_ec_rt * max(0., qdcg_pos - CG_ec))
-        ymod1 = max(0., ymod1 - qdcg_exclusion)
-        invinc_agi_ec += qdcg_exclusion
+             invinc - invinc_agi_ec + e00600 - e00650 + e01100 +
+             e01200 + c01000 + e02000 + e02100 + e02300)
     # compute ymod variable that is used in OASDI benefit taxation logic
     ymod2 = e00400 + (0.50 * e02400) - c02900
     ymod3 = (1. - ALD_StudentLoan_hc) * e03210 + e03230 + e03240
